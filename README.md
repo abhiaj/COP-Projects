@@ -1,3 +1,3 @@
 # Indian Road Traffic Simulator
 
-A basic simulation of the 4 laned highway built in accordance with the Indian raods that include overtaking and pulling off. Implementation using opengl is present in the project. The readme provides a basic intro to the project.
+A basic traffic simulation built in accordance with the Indian roads that include overtaking, pulling off, casual violation of red light, and mindless driving(to some extent) XD. Implementation using opengl is present in the project. The readme provides a basic intro to the project.
