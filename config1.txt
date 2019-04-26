@@ -1,34 +1,40 @@
 # 1. Define Road Parameters
 Road_Id=1			# Unique Id for the simulation 
-Road_Length=70
-Road_Width=12
+Road_Length=100
+Road_Width=16
 
 # 2. Define default params for all vehicle types
 
 # 3. Define params for specific vehicle types
 Vehicle_Type=Car		# A new vehicle class will start with a type field
-Vehicle_Length=2
+Vehicle_Length=3
 Vehicle_Width=2
 Vehicle_Acceleration=1
-Vehicle_MaxSpeed=4
+Vehicle_MaxSpeed=0.4
 
 Vehicle_Type=Bike		# The first character will be used as the symbol for printing
 Vehicle_Length=2
 Vehicle_Width=1
-Vehicle_Acceleration=1
-Vehicle_MaxSpeed=2
+Vehicle_Acceleration=0.1
+Vehicle_MaxSpeed=0.2
 
 Vehicle_Type=Bus
-Vehicle_Length=3
+Vehicle_Length=7
 Vehicle_Width=2
-Vehicle_Acceleration=1
-Vehicle_MaxSpeed=3
+Vehicle_Acceleration=0.1
+Vehicle_MaxSpeed=0.3
 
 Vehicle_Type=Truck
-Vehicle_Length=4
+Vehicle_Length=6
 Vehicle_Width=2
-Vehicle_Acceleration=1
-Vehicle_MaxSpeed=3
+Vehicle_Acceleration=0.1
+Vehicle_MaxSpeed=0.3
+
+Vehicle_Type=Auto
+Vehicle_Length=3
+Vehicle_Width=2
+Vehicle_Acceleration=0.05
+Vehicle_MaxSpeed=0.2
 
 # Definitions over
 # 4. Start the simulation
@@ -41,7 +47,7 @@ Truck=BLUE
 bike=GREEN
 Bus=BLUE
 
-Pass=5			# Let the simulation keep running for 15 seconds
+Pass=50			# Let the simulation keep running for 15 seconds
 
 # Now below vehicles enter the road
 Car=BLUE
@@ -49,7 +55,7 @@ Car=RED
 Truck=YELLOW
 Bus=BLUE
 
-Pass=25
+Pass=250
 # Turn the signal green
 SIGNAL=GREEN
 
@@ -58,13 +64,13 @@ Car=RED
 Truck=YELLOW
 Bus=BLUE
 
-Pass=15
+Pass=150
 
 Car=BLUE
 Car=RED
 Truck=YELLOW
 Bus=BLUE
 
-Pass=50
+Pass=500
 
 #END		

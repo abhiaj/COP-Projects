@@ -9,7 +9,7 @@ Road_Width=16
 Vehicle_Type=Car		# A new vehicle class will start with a type field
 Vehicle_Length=3
 Vehicle_Width=2
-Vehicle_Acceleration=1
+Vehicle_Acceleration=0.1
 Vehicle_MaxSpeed=0.4
 
 Vehicle_Type=Bike		# The first character will be used as the symbol for printing
@@ -42,32 +42,36 @@ Vehicle_MaxSpeed=0.2
 SIGNAL=GREEN	# Make the signal GREEN
 
 # Send vehicles with given types on the road (one per second)
-bike=YELLOW
-Truck=BLUE
-bike=GREEN
-Bus=BLUE
 
-Pass=50			# Let the simulation keep running for 15 seconds
-
-# Now below vehicles enter the road
-Car=BLUE
-Car=RED
-Truck=YELLOW
-Bus=BLUE
-
-Pass=250
-# Turn the signal red
 SIGNAL=RED
 
-Car=BLUE
-Car=RED
-Truck=YELLOW
+Truck=GREEN
+Car=WHITE
+bike=YELLOW
 Bus=BLUE
+
+Pass=150
+
+Car=BLUE
+bike=YELLOW
+Auto=GREEN
+Truck=BLUE
+
+Pass=50 
+
+bike=RED
+bike=YELLOW
+
+Pass=20
+
+Bus=BLUE
+Truck=RED
+
+SIGNAL=RED
 
 Pass=300
 
-bike=BLUE
-
-Pass=500
+SIGNAL=GREEN
+Pass=200
 
 #END		

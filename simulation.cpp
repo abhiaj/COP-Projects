@@ -19,13 +19,31 @@
   //x => down, y => right
 using namespace std;
 
+class status
+{
+	public: int lane_auto;
+			float position_auto[2];
+			int shift_auto;
+	status(int l, float p[2], int s)
+	{
+		lane_auto=l;
+		position_auto[0]=p[0]; position_auto[1]=p[1]; 
+		shift_auto=s;
+	}
+};
+
 vector< vector<Vehicle> > input_gl;
 int g_road_width, g_road_length; //for use by open gl
 vector<int> g_signal;
+int red_light;
+int zebra;
+int bikes_on_zebra[]={0,0,0,0};
 //time for each frame 
-float refreshMills = 1000;
-
-
+float refreshMills = 30;
+//int num_lanes;
+int lane_width;
+vector<status> autos_at_odd_angles;
+int curr_signal;
 
 vector<Vehicle> speed_control(vector<Vehicle> input)
 {
@@ -33,13 +51,13 @@ vector<Vehicle> speed_control(vector<Vehicle> input)
 		//vector<Vehicle> out_f; //for storing vehicles row wise in asc order
 		// forming a matrix of vehicles
 
-		for(int k=1;k<=4;k++) //number of lanes to be updated here
+		for(int k=-4;k<=4;k++) //number of lanes to be updated here
 		{
 			//int temp_pos_y=psdout[k].position[1];
 			vector<Vehicle> vehicles_samerow;
 			for(int i=0;i<input.size();i++)
 			{
-				if(input[i].lane==k)
+				if(input[i].lane==k )
 				{
 					vehicles_samerow.push_back(input[i]);
 					//psdout.erase(psdout.begin()+i);
@@ -52,7 +70,7 @@ vector<Vehicle> speed_control(vector<Vehicle> input)
 			{
 				for(int i2=0;i2<vehicles_samerow.size()-1;i2++)
 				{
-					if(vehicles_samerow[i2].position[0]>vehicles_samerow[i2+1].position[0])
+					if(vehicles_samerow[i2].position[0]>vehicles_samerow[i2+1].position[0]) 
 					{
 						Vehicle temp= vehicles_samerow[i2];
 						vehicles_samerow[i2]=vehicles_samerow[i2+1];
@@ -80,7 +98,7 @@ vector<Vehicle> speed_control(vector<Vehicle> input)
 		{
 			vector<Vehicle> vehicles_samerow=vehicles_row_wise[i];
 
-			for(int k=vehicles_samerow.size()-1; k>0;k--)
+			for(int k=vehicles_samerow.size()-1; k>0;k--) //change here for speed ontroll
 			{
 				Vehicle v= vehicles_samerow[k];
 
@@ -89,7 +107,9 @@ vector<Vehicle> speed_control(vector<Vehicle> input)
 					if(vehicles_samerow[k].speed<vehicles_samerow[k-1].speed)
 						vehicles_samerow[k-1].speed=vehicles_samerow[k].speed;
 
-				
+				/*if( vehicles_samerow[k].position[0] - vehicles_samerow[k-1].position[0] >= (vehicles_samerow[k].length+2) )
+					if(vehicles_samerow[k].position[0]+vehicles_samerow[k].speed - vehicles_samerow[k-1].position[0]+vehicles_samerow[k-1].speed <=(vehicles_samerow[k].length+2))
+						vehicles_samerow[k-1].speed=vehicles_samerow[k].speed;*/
 
 				//cout<<i<<" nuh"<< k<<endl;
 				speed_changed.push_back(vehicles_samerow[k]);
@@ -118,7 +138,7 @@ vector<Vehicle> lane_change(vector<Vehicle> input)
 			{
 
 
-				if(input[i].lane==k)
+				if(input[i].lane==k || input[i].lane==-k)
 				{
 					vehicles_samerow.push_back(input[i]);
 					//psdout.erase(psdout.begin()+i);
@@ -155,7 +175,6 @@ vector<Vehicle> lane_change(vector<Vehicle> input)
 
 			for(int k=vehicles_samerow.size()-1; k>0;k--)
 			{
-
 				//updating matrix
 				//start
 				for(int ii=0;ii<rows;ii++)
@@ -169,36 +188,36 @@ vector<Vehicle> lane_change(vector<Vehicle> input)
 					for(int k=0; k<temp_row.size();k++)
 					{
 						Vehicle v = temp_row[k];
-					int l = v.length; int w = v.width; int x = v.position[0]; int y = v.position[1];
+						int l = v.length; int w = v.width; int x = v.position[0]; int y = v.position[1];
 
 						for(int p = x;p>x-l;p--)
-					{
-						for(int q = y;q<y+w;q++)
 						{
-							if(p>=0 && p<=g_road_length-1 && q>=0 && q<=g_road_width-1)
+							for(int q = y;q<y+w;q++)
 							{
-								pmatrix2[q][p]=1;
+								if(p>=0 && p<=g_road_length-1 && q>=0 && q<=g_road_width-1)
+								{
+									pmatrix2[q][p]=1;
+								}
 							}
 						}
-					}
 
 					}
 				}
 				//cout<<endl;
 				for(int i=0;i<rows;i++)
-		{
-			for(int j=0;j<columns;j++)
-			{
-				if(j==columns-1)
 				{
+					for(int j=0;j<columns;j++)
+					{
+						if(j==columns-1)
+						{
 					//cout<<pmatrix2[i][j]<<"\n";
-				}
-				else
-				{
+						}
+						else
+						{
 					//cout<<pmatrix2[i][j]<<" ";
+						}
+					}
 				}
-			}
-		}
 				//end
 
 				Vehicle v= vehicles_samerow[k-1];
@@ -209,22 +228,23 @@ vector<Vehicle> lane_change(vector<Vehicle> input)
 
 			if(temp.lane==v.lane)
 			{
-				if( temp.position[0] - v.position[0]<=(temp.length+1) || 
-					temp.position[0]+temp.speed - v.position[0]+v.speed <=(temp.length+1)  )
-				{
-					if(temp.speed<v.speed)
+				if( temp.position[0] - v.position[0]<=(temp.length+2) || 
+					temp.position[0]+(temp.speed*10) - v.position[0]-(v.speed*10) <=(temp.length+2)  )
+				{	//cout<<"bc";
+					if(temp.speed<v.speed || temp.max_speed< v.max_speed)
 					{
 						//int check_lanechange=-1;
-							if(v.lane<=3)
+							if(v.lane<=3 && v.lane>=0) 
 							{
+								left_shift=0,right_shift=0;
 								//cout<<"cf";
 								int check_lanechange=0;
 								//checking for possibility of lane shift
 								//cout<<v.position[0]+1<<" "<<v.position[1]+5<<endl;
-								for( int i1=v.position[0]+1; i1>=v.position[0]-v.length ; i1--) //error here
+								for( int i1=v.position[0]+2; i1>=v.position[0]-v.length-2 ; i1--) //error here
 								{
 									//cout<<"cf";
-									for(int j=v.position[1]+3;j<=v.position[1]+5;j++)
+									for(int j=v.position[1]+lane_width;j<=v.position[1]+lane_width+3;j++) //width change bt
 									{
 										if(pmatrix2[j][i1]==1)
 										{
@@ -252,10 +272,11 @@ vector<Vehicle> lane_change(vector<Vehicle> input)
 							if(v.lane>=2)
 							{
 								int check_lanechange=0;
+								left_shift=0,right_shift=0;
 								//checking for possibility of lane shift
 								for(int i1=v.position[0]+1;i1>=v.position[0]-v.length;i1--)
 								{
-									for(int j=v.position[1]-3;j<=v.position[1]-1;j++)
+									for(int j=v.position[1]-lane_width;j<=v.position[1]-1;j++) //bt
 									{
 										if(pmatrix2[j][i1]==1)
 										{
@@ -277,7 +298,7 @@ vector<Vehicle> lane_change(vector<Vehicle> input)
 							{
 								//if(v.lane<=3)
 								{
-									vehicles_row_wise[i][k-1].position[1]+=3;
+									vehicles_row_wise[i][k-1].position[1]+=lane_width;
 									vehicles_row_wise[i][k-1].lane++;
 									//cout<<v.lane;
 									//psdout3.push_back(v);
@@ -288,8 +309,9 @@ vector<Vehicle> lane_change(vector<Vehicle> input)
 							{
 								//if(v.lane>=2)
 								{
-									vehicles_row_wise[i][k-1].position[1]-=3;
+									vehicles_row_wise[i][k-1].position[1]-=lane_width;
 									vehicles_row_wise[i][k-1].lane--;
+
 								}
 						//cout<<v.lane;
 							}
@@ -323,34 +345,210 @@ vector<Vehicle> lane_change(vector<Vehicle> input)
 	return lane_changed;
 }
 
-vector<Vehicle> run(Road r,vector<Vehicle> vehicles, Traffic_Signal t,int go){
+vector<Vehicle> handle_bikes(vector<Vehicle> input) //jab chal raha hai tab bhi change
+{
+	vector<Vehicle> bike_handled;
+	for(int i=0; i<input.size(); i++)
+	{
+		Vehicle v=input[i];
+
+		if(v.type=='b')
+		{
+			if(v.speed==0)
+			{
+				if(v.lane>0)
+				{
+					int num_auto_lane=0;
+					for(int i=0; i<input.size(); i++)
+					{
+						Vehicle v2=input[i];
+						if(v2.lane==(v.lane) && v2.type=='A')
+						{
+							num_auto_lane++;
+						}
+					}
+
+					if(v.position[0]<red_light && num_auto_lane==0)
+					{
+						v.position[1]+=2; //bt
+						v.lane-=2*(v.lane);
+					}
+				}
+
+				else if(v.lane<0)
+				{
+					if(v.position[0]>red_light+2 && v.position[0]<zebra) //may change //on zebra
+					{
+						v.lane-=2*v.lane;
+						int num= bikes_on_zebra[v.lane-1];
+						for(int i=0; i<num; i++ )
+						{
+							v.position[0]+=v.length+1;
+						}
+						v.position[1]-=2;   //bt
+						bikes_on_zebra[v.lane-1]++;
+					}
+				}
+			}
+		}
+		//cout<<v.speed<<endl;
+		bike_handled.push_back(v);
+	}
+
+	return bike_handled;
+}
+
+vector<Vehicle> handle_autos(vector<Vehicle> input)
+{
+	vector<vector<Vehicle>> vehicles_row_wise; 
+		//vector<Vehicle> out_f; //for storing vehicles row wise in asc order
+		// forming a matrix of vehicles
+
+		for(int k=1;k<=4;k++) //number of lanes to be updated here
+		{
+			//int temp_pos_y=psdout[k].position[1];
+			vector<Vehicle> vehicles_samerow;
+			for(int i=0;i<input.size();i++)
+			{
+				if(input[i].lane==k || input[i].lane==-k)
+				{
+					vehicles_samerow.push_back(input[i]);
+					//psdout.erase(psdout.begin()+i);
+					//i=0; k=0;
+				}
+
+			}
+			//sort in asc
+			for(int i1=0;i1<vehicles_samerow.size();i1++)
+			{
+				for(int i2=0;i2<vehicles_samerow.size()-1;i2++)
+				{
+					if(vehicles_samerow[i2].position[0]>vehicles_samerow[i2+1].position[0]) 
+					{
+						Vehicle temp= vehicles_samerow[i2];
+						vehicles_samerow[i2]=vehicles_samerow[i2+1];
+						vehicles_samerow[i2+1]=temp;
+					}
+				}
+			}
+			vehicles_row_wise.push_back(vehicles_samerow);
+		}
+
+	vector<Vehicle> autos_handled;
+	//vector<Vehicle> autos_handled1;
+
+	for(int i=0; i<vehicles_row_wise.size();i++)
+	{
+		vector<Vehicle> vehicles_samerow= vehicles_row_wise[i];
+		for(int k=0; k<vehicles_samerow.size(); k++)
+		{
+			Vehicle v=vehicles_samerow[k];
+
+			if(v.type=='A' && curr_signal==0)
+			{
+				if(v.speed==0)
+				{
+						//v.angle=20.0;
+					//v.lane++;
+					//v.position[0]+=lane_width;
+						//v.position[1]+=1.5;
+						//if(v.lane>0)
+						//v.lane-=2*v.lane;
+						//status temp= status(v.lane, v.position, 1); //1 for riight shift 0 for left
+						//autos_at_odd_angles.push_back(temp);
+						float theta=v.angle;
+						float d= sqrt(v.length*v.length + v.width*v.width);
+						if( v.position[1]+d*cos(theta) < (v.lane)*lane_width+1 )
+						{
+							v.angle+=1;
+							v.position[1]+=0.08;
+						}
+					
+
+				}
+			}
+
+			if(v.type=='A' && curr_signal==1)
+			{
+				if(v.angle!=0)
+				{
+					v.angle-=1;
+					//v.position[1]=(-v.lane-1)*lane_width+2;
+					if(v.position[1]<(v.lane-1)*lane_width+1)
+					{
+						v.position[1]+=0.05;
+					}
+					//v.lane-=2*v.lane;
+				}
+			}
+			autos_handled.push_back(v);
+		}
+	}
+
+	/*if(curr_signal==1)
+	{
+
+	for(int i=0; i<autos_at_odd_angles.size(); i++)
+	{
+		status temp= autos_at_odd_angles[i];
+		int index=temp.lane_auto-1+ temp.shift_auto;
+		vector<Vehicle> vehicles_samerow= vehicles_row_wise[index];
+
+		for(int j=0; j<vehicles_samerow.size();j++)
+		{
+			Vehicle v=vehicles_samerow[j];
+			if(v.position[0]<temp.position_auto[0])
+			{
+				if(v.position[0]>temp.position_auto[0]-6) //6 needs to be changed here
+				{
+					vehicles_row_wise[index][j].speed=0;
+				}
+			}
+		}
+	}
+
+	}*/
+
+	
+
+	return autos_handled;
+}
+
+vector<Vehicle> run(Road r,vector<Vehicle> vehicles, Traffic_Signal t,int go)
+{
 
 	//input_gl.push_back(vehicles);
 	
 
-	int red_light = r.length/2 - 1;
+	red_light = g_road_length/2 ;
+	zebra=red_light+g_road_length/10;
 
 	//int lc;
 	//vector<Vehicle> psdout,out;float rr;
-	vector<Vehicle> psdout1,psdout2,psdout3,psdout4,out; 
+	vector<Vehicle> psdout1,psdout2,psdout3,psdout4,psdout5,psdout6,out; 
 	int rows = r.width; int columns = r.length;
 	char canvas[rows][columns];
 	//vector < vector < int > > pmatrix(rows, vector< int >(columns,0));
 
 	for(int i=0;i<vehicles.size();i++)
 	{
+		if(vehicles[i].position[0]==0)
+		{
 		if(vehicles[i].lane==1)
 			vehicles[i].position[1]=0;
 		else if(vehicles[i].lane==2)
-			vehicles[i].position[1]=3;
+			vehicles[i].position[1]=lane_width;
 		else if(vehicles[i].lane==3)
-			vehicles[i].position[1]=6;
+			vehicles[i].position[1]=2*lane_width;
 		else if(vehicles[i].lane==4)
-			vehicles[i].position[1]=9;
+			vehicles[i].position[1]=3*lane_width;
+		}
 	}
 
+	//storing the state of vheicles and traffuc light
 	input_gl.push_back(vehicles);
 	g_signal.push_back(t.signal);
+
 	//initial updating of road matrix
 
 	for(int i=0;i<rows;i++)
@@ -371,8 +569,14 @@ vector<Vehicle> run(Road r,vector<Vehicle> vehicles, Traffic_Signal t,int go){
 		} 
 	}
 
-	//print(pmatrix);
-	cout<<endl<<"-----------------------------------------------------------------------------------------------------------------------"<<endl;
+	for(int i=0;i<rows;i++)
+	{
+		canvas[i][red_light]='|';
+		canvas[i][zebra]='|';
+	}
+
+	//print
+	cout<<endl<<"-------------------------------------------------------------------------------------------------------------------------------------------"<<endl;
 	
 			for(int i=0;i<rows;i++){
 				for(int j=0;j<columns;j++){
@@ -386,33 +590,50 @@ vector<Vehicle> run(Road r,vector<Vehicle> vehicles, Traffic_Signal t,int go){
 				}
 			}
 
-		//first normal updation
+		//first normal updation of speed
 		for(int i=0;i<vehicles.size();i++)
 		{
 			Vehicle v=vehicles[i];
 			v.speed+=v.acc;
-			if(v.speed>=v.max_speed)
+			if(v.speed>=v.max_speed )
 			{
 				v.speed=v.max_speed;
 			}
+			if(v.angle!=0)
+				v.speed=0;
 			//cout<<v.speed;
 			psdout1.push_back(v);
 		}
-		
-		
 
-		//checking traffic light and updating speeeds
+		//checking traffic light and updaave to type "run" before "record"). If you want to stting speeeds
 		if(t.signal==0)
 		{
 			for(int i=0;i<psdout1.size();i++)
 			{
 				Vehicle v=psdout1[i];
+
+				if(v.type!='b')
+				{
 				if(v.position[0]>=red_light)
 					if(v.position[0]-v.length<red_light)
 						v.speed=0;
-					//goint to cross in next step
+
+				if(v.position[0]<red_light)
+					if(v.position[0]+v.speed>red_light)
+						v.speed=0;
+
+				//goint to cross in next step
 				else if(v.position[0]+v.speed>=red_light && (v.position[0]+v.speed-v.length<red_light) )
 					v.speed=0;
+				}
+
+				else if(v.type='b')
+				{
+					if(v.position[0]<zebra && v.position[0]>red_light+2)
+						v.speed=0;
+				}
+
+				
 
 				psdout2.push_back(v);
 			}
@@ -422,30 +643,51 @@ vector<Vehicle> run(Road r,vector<Vehicle> vehicles, Traffic_Signal t,int go){
 			psdout2=psdout1;
 		}
 
-		
-		psdout3=lane_change(psdout2);
 
+		//psdout3=psdout2;
+		psdout3=lane_change(psdout2);
+		//psdout3=psdout2;
 		
 		psdout4=speed_control(psdout3);
+		//psdout4=psdout3;
+
+		if(t.signal==0)
+		{
+			psdout5=handle_bikes(psdout4);
+		}
 		
+		else
+		{
+			psdout5=psdout4;
+		}
+		
+		
+		psdout6=handle_autos(psdout5);
 
 		//updating position of vehicles
-		for(int i=0;i<psdout4.size();i++)
+		for(int i=0;i<psdout6.size();i++)
 		{
 			//Vehicle v= psdout4[i];
-			psdout4[i].position[0]+=psdout4[i].speed;
+			psdout6[i].position[0]+=psdout6[i].speed;
 			//out_f.push_back(v);
 		}
 
-
-		
+		//reoving vehicles frm class object who have crossed ht eroad
+		/*for(int i=0; i<psdout5.size(); i++)
+		{
+			Vehicle v= psdout5[i];
+			if(v.position[0]>=0 && v.position[0]<=g_road_length)
+			{
+				psdout6.push_back(v);
+			}
+		}*/
 		
 			//cout<<"\n";
 		if(go>0){
-			out = run(r,psdout4,t,go-1);
+			out = run(r,psdout6,t,go-1);
 		}
 		else{
-			out=psdout4;
+			out=psdout6;
 		}
 	return out;	
 //	sleep_for(seconds(1));
@@ -526,7 +768,7 @@ void display() {
  	
  	glPushMatrix();
 
- 	glTranslatef(0.99f,-1.0f,0.0f);
+ 	glTranslatef(0.99f,-1.1f,0.0f);
 
  	glBegin(GL_POLYGON);
 
@@ -545,18 +787,46 @@ void display() {
     glPopMatrix();
 
 
+ 	glBegin(GL_QUADS);
+
+ 	glColor3f(1.0f,1.0f,1.0f);
+
+ 	for(float i=0;i<1.0;i+=0.2)
+ 	{
+ 	glVertex2f(1.0f,0.0f-i);
+ 	glVertex2f(1.0f,-0.1f-i);
+ 	glVertex2f(1.2f,-0.1f-i);
+ 	glVertex2f(1.2f,0.0f-i);
+ 	}
+ 	
+ 	glEnd();
+
+ 	glBegin(GL_LINES);
+
+ 	glVertex2f(1.2f,0.0f);
+ 	glVertex2f(1.2f,-0.8f);
+
+ 	glEnd();
+
  	vector<Vehicle> tempv= input_gl[number_sim];
 
  	for(int k=0; k<tempv.size();k++)
  	{
+
  		glPushMatrix();                     // Save model-view matrix setting
  		float x_pos=(float)tempv[k].position[0]*x_scale, y_pos=(float)-tempv[k].position[1]*y_scale;
  		float length= (float)tempv[k].length*x_scale; float width= (float)tempv[k].width*y_scale;
  		
  		//Add directed light
-    
-
+    	if(tempv[k].position[0]<=g_road_length)
+    	{
+ 		
    		glTranslatef(x_pos, y_pos, 0.0f); 
+   		if(tempv[k].angle!=0)
+  		{
+  		glRotatef(tempv[k].angle, 0.0f, 0.0f, 1.0f);
+  		//cout<<"bc"<<endl;
+  		}
    
    glBegin(GL_QUADS);                  // Each set of 4 vertices form a quad
 
@@ -569,16 +839,19 @@ void display() {
    		else if(tempv[k].colour=="YELLOW")
 		   	glColor3f(1.0f,1.0f,0.0f);
 		else if(tempv[k].colour=="WHITE")
-		   	glColor3f(0.0f,0.0f,0.0f);
+		   	glColor3f(1.0f,1.0f,1.0f);
+      
       
       glVertex2f(0.0f,0.0f);
       glVertex2f(-length,0.0f);
       glVertex2f(-length, -width);
       glVertex2f(0.0f, -width);
+  	
 
 
    glEnd();
 
+		}
 
    glBegin(GL_LINES);
 
@@ -635,14 +908,15 @@ void reshape(GLsizei width, GLsizei height) {  // GLsizei for non-negative integ
 
 int main(int argc, char** argv){
    	int road_id,road_width,road_length,n_iter;
-   	float speed,car_acc,bike_acc,bus_acc,truck_acc;
-   	float car_maxspeed,bike_maxspeed,bus_maxspeed,truck_maxspeed;
-   	int car_length,car_width,bike_width,bike_length,bus_length,bus_width,truck_length,truck_width;
+   	float speed,car_acc,bike_acc,bus_acc,truck_acc,auto_acc;
+   	float car_maxspeed,bike_maxspeed,bus_maxspeed,truck_maxspeed,auto_maxspeed;
+   	int car_length,car_width,bike_width,bike_length,bus_length,bus_width,truck_length,truck_width,auto_length,auto_width;
 	Traffic_Signal t = Traffic_Signal(0);
 	Road r = Road(1,5,30);
 	//int ider = 0;
 	vector<Vehicle> out; vector<Vehicle> vehicles; vector<string> sth; 
-	int y= 0,lane=0;
+	float y= 0;
+	int lane=0;
 	speed=0;
 	string key,value,vehicle_colour;
 	sth = parse(argv[1]);
@@ -658,6 +932,7 @@ int main(int argc, char** argv){
 			 value=sth[i];
 			 road_width = stoi(value);
 			 g_road_width=road_width;
+			 lane_width=g_road_width/4;
 			 r = Road(road_id,road_length,road_width);
 		}
 		else if(key=="Road_Length"){
@@ -793,15 +1068,47 @@ int main(int argc, char** argv){
 			 		truck_maxspeed = stof(value);
 				 }
 			 }
+			  if(value=="Auto"){
+			 	i=i+1;
+			 	key=sth[i];
+			 	if(key=="Vehicle_Length"){
+			 		i=i+1;
+			 		value=sth[i];
+			 		auto_length = stoi(value);
+				 }
+				i++;
+				key=sth[i]; 
+				 if(key=="Vehicle_Width"){
+			 		i=i+1;
+			 		value=sth[i];
+			 		auto_width = stoi(value);
+				 }
+				 i++; 
+				key=sth[i]; 
+				 if(key=="Vehicle_Acceleration"){
+			 		i=i+1;
+			 		value=sth[i];
+			 		auto_acc = stof(value);
+				 }
+				 i++; 
+				key=sth[i]; 
+				 if(key=="Vehicle_MaxSpeed"){
+			 		i=i+1;
+			 		value=sth[i];
+			 		auto_maxspeed = stof(value);
+				 }
+			 }
 		}
 		else if(key=="SIGNAL"){
 			 i=i+1;
 			 value=sth[i];//cout<<value;
 			 if(value=="RED"){
-			 	t.signal=0; //cout<<"lukakured";
+			 	t.signal=0;
+			 	curr_signal=0;
 			 }
 			 else{
-			 	t.signal=1;//cout<<"lukaku";
+			 	t.signal=1;
+			 	curr_signal=1;
 			 }
 		}
 		else if(key=="Car"){
@@ -857,6 +1164,20 @@ int main(int argc, char** argv){
 			 vehicle_colour=value;
 			 Vehicle t = Vehicle(truck_length,truck_width,speed,truck_acc,truck_maxspeed,0,y,lane,vehicle_colour,'T'); 
 				 vehicles.push_back(t);
+		}
+		else if(key=="Auto"){
+			 i=i+1;
+			 value=sth[i];
+			 vehicle_colour=value;
+			 if(lane==4){
+			 	lane=1;
+			 }
+			 else{
+			 	lane=lane+1;
+			 }
+			 vehicle_colour=value;
+			 Vehicle a = Vehicle(auto_length,auto_width,speed,auto_acc,auto_maxspeed,0,y,lane,vehicle_colour,'A'); 
+				 vehicles.push_back(a);
 		}
 		else if(key=="Pass"){
 			 i=i+1;

@@ -12,10 +12,11 @@ class Vehicle {
 	  		float acc;
 			string colour;
 			float max_speed;
-			int position[2];
+			float position[2];
 			int lane;
 			char type;
-			Vehicle(int l,int w,float s,float a,float m_s,int x,int y,int lan, string str, char c){
+			float angle=0;
+			Vehicle(int l,int w,float s,float a,float m_s,float x,float y,int lan, string str, char c){
 				length = l;
 				width = w;
 				speed = s;

@@ -1,2 +1,2 @@
 make:simulation.cpp
-	g++ simulation.cpp -lGL -lGLU -lglut
+	g++ simulation.cpp -lGL -lGLU -lglut -g
